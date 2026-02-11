@@ -111,11 +111,21 @@ fun MatchCard(
                 // Home team
                 Column(
                     modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Center
                 ) {
+                    // 英文缩写
                     Text(
-                        text = match.homeTeam.displayName,
-                        style = MaterialTheme.typography.titleMedium,
+                        text = match.homeTeam.shortName ?: match.homeTeam.name,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    // 中文名称
+                    Text(
+                        text = match.homeTeam.nameZh ?: match.homeTeam.name,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -145,11 +155,22 @@ fun MatchCard(
                 // Away team
                 Column(
                     modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.End
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
                 ) {
+                    // 英文缩写
                     Text(
-                        text = match.awayTeam.displayName,
-                        style = MaterialTheme.typography.titleMedium,
+                        text = match.awayTeam.shortName ?: match.awayTeam.name,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.End
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    // 中文名称
+                    Text(
+                        text = match.awayTeam.nameZh ?: match.awayTeam.name,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.End
                     )

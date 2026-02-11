@@ -82,14 +82,10 @@ fun MainScreen(
                 onMatchClick = onMatchClick,
                 modifier = Modifier.padding(paddingValues)
             )
-            1 -> HomeScreen(
-                onMatchClick = onMatchClick,
+            1 -> StandingsScreen(
                 modifier = Modifier.padding(paddingValues)
             )
-            2 -> StandingsScreen(
-                modifier = Modifier.padding(paddingValues)
-            )
-            3 -> TeamInfoScreen(
+            2 -> TeamInfoScreen(
                 onMatchClick = onMatchClick,
                 modifier = Modifier.padding(paddingValues)
             )
@@ -101,7 +97,6 @@ enum class BottomNavItem(
     val title: String,
     val icon: ImageVector
 ) {
-    HOME("首页", Icons.Default.Home),
     MATCHES("赛程", Icons.Default.DateRange),
     STANDINGS("榜单", Icons.Default.List),
     TEAM("球队", Icons.Default.Shield)
