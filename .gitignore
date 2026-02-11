@@ -1,0 +1,38 @@
+# Gradle
+.gradle/
+build/
+*/build/
+gradlew
+gradlew.bat
+gradle/wrapper/
+
+# Android Studio
+.idea/
+*.iml
+.externalNativeBuild
+.cxx
+local.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Built application files
+*.apk
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Generated files
+bin/
+gen/
+out/
+
+# Keystore files
+*.jks
+*.keystore
+
+# Secrets
+secrets.properties

@@ -1,0 +1,35 @@
+package com.aura.football.data.local
+
+import androidx.room.Database
+import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.aura.football.data.local.dao.*
+import com.aura.football.data.local.entity.*
+
+@Database(
+    entities = [
+        MatchEntity::class,
+        TeamEntity::class,
+        LeagueEntity::class,
+        PredictionEntity::class
+    ],
+    version = 2,
+    exportSchema = false
+)
+abstract class AuraDatabase : RoomDatabase() {
+    abstract fun matchDao(): MatchDao
+    abstract fun teamDao(): TeamDao
+    abstract fun leagueDao(): LeagueDao
+    abstract fun predictionDao(): PredictionDao
+
+    companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 添加 name_zh 和 short_name_zh 列到 teams 表
+                database.execSQL("ALTER TABLE teams ADD COLUMN name_zh TEXT")
+                database.execSQL("ALTER TABLE teams ADD COLUMN short_name_zh TEXT")
+            }
+        }
+    }
+}

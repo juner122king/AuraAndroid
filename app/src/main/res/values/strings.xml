@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aura足球</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">首页</string>
+    <string name="nav_matches">赛程</string>
+    <string name="nav_standings">榜单</string>
+
+    <!-- Time Filters -->
+    <string name="filter_today">今日</string>
+    <string name="filter_tomorrow">明日</string>
+    <string name="filter_this_week">本周</string>
+
+    <!-- Match Status -->
+    <string name="status_scheduled">未开始</string>
+    <string name="status_live">直播中</string>
+    <string name="status_finished">已结束</string>
+    <string name="status_postponed">延期</string>
+
+    <!-- Prediction -->
+    <string name="prediction_title">AI预测</string>
+    <string name="prediction_home_win">主胜</string>
+    <string name="prediction_draw">平局</string>
+    <string name="prediction_away_win">客胜</string>
+    <string name="prediction_confidence">可信度: %1$d%%</string>
+    <string name="prediction_explanation">预测分析</string>
+
+    <!-- Match Detail -->
+    <string name="tab_match_info">比赛信息</string>
+    <string name="tab_prediction">AI预测</string>
+    <string name="tab_team_comparison">球队对比</string>
+
+    <!-- Common -->
+    <string name="loading">加载中…</string>
+    <string name="error_generic">加载失败，请重试</string>
+    <string name="error_network">网络连接失败</string>
+    <string name="retry">重试</string>
+    <string name="vs">VS</string>
+
+    <!-- Standings -->
+    <string name="standings_position">#</string>
+    <string name="standings_team">球队</string>
+    <string name="standings_played">赛</string>
+    <string name="standings_won">胜</string>
+    <string name="standings_draw">平</string>
+    <string name="standings_lost">负</string>
+    <string name="standings_points">积分</string>
+</resources>
