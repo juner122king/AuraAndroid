@@ -71,7 +71,9 @@ class MatchRepositoryImpl @Inject constructor(
                         matchTime = dto.matchTime,
                         status = dto.status,
                         homeScore = dto.homeScore,
-                        awayScore = dto.awayScore
+                        awayScore = dto.awayScore,
+                        round = dto.round,
+                        roundNumber = dto.roundNumber
                     ).toEntity()
                 })
 
@@ -236,7 +238,9 @@ class MatchRepositoryImpl @Inject constructor(
                             score = if (matchDto.homeScore != null && matchDto.awayScore != null) {
                                 com.aura.football.domain.model.Score(matchDto.homeScore, matchDto.awayScore)
                             } else null,
-                            prediction = null
+                            prediction = null,
+                            round = matchDto.round,
+                            roundNumber = matchDto.roundNumber
                         )
                     } else {
                         null

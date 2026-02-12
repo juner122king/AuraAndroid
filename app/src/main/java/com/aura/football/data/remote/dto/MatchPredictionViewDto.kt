@@ -18,6 +18,10 @@ data class MatchPredictionViewDto(
     val homeScore: Int?,
     @SerializedName("away_score")
     val awayScore: Int?,
+    @SerializedName("round")
+    val round: String?,
+    @SerializedName("round_number")
+    val roundNumber: Int?,
 
     // Home Team fields
     @SerializedName("home_team_id")

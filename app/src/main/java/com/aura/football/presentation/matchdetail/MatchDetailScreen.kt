@@ -144,12 +144,33 @@ fun MatchHeader(
             modifier = Modifier.padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // League and time
-            Text(
-                text = match.league.name,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            // League and round
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = match.league.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+
+                // Round number badge
+                if (match.roundNumber != null) {
+                    Surface(
+                        shape = MaterialTheme.shapes.extraSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = "第${match.roundNumber}轮",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 
@@ -230,6 +251,9 @@ fun MatchInfoTab(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         InfoRow(label = "联赛", value = match.league.name)
+        if (match.roundNumber != null) {
+            InfoRow(label = "轮次", value = "第${match.roundNumber}轮")
+        }
         InfoRow(label = "时间", value = match.matchTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
         InfoRow(label = "状态", value = when (match.status) {
             com.aura.football.domain.model.MatchStatus.SCHEDULED -> "未开始"

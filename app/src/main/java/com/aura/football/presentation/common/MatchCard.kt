@@ -65,6 +65,22 @@ fun MatchCard(
                         fontWeight = FontWeight.SemiBold
                     )
 
+                    // Round number badge
+                    if (match.roundNumber != null) {
+                        Surface(
+                            shape = MaterialTheme.shapes.extraSmall,
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Text(
+                                text = "第${match.roundNumber}轮",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
                     // AI indicator badge
                     if (match.prediction != null) {
                         Surface(
@@ -187,17 +203,78 @@ fun MatchCard(
                 MatchStatusChip(status = match.status)
             }
 
-            // AI Prediction Section
+            // AI Prediction Section - 简化版，只显示概率条
             match.prediction?.let { prediction ->
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(modifier = Modifier.height(12.dp))
 
-                PredictionSection(
-                    prediction = prediction,
-                    homeTeamName = match.homeTeam.displayName,
-                    awayTeamName = match.awayTeam.displayName
-                )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // AI预测标题和可信度
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "🤖",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Text(
+                                text = "AI预测",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        // 可信度徽章
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = getConfidenceColor(prediction.confidence).copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = "可信度 ${(prediction.confidence * 100).roundToInt()}%",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = getConfidenceColor(prediction.confidence),
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 三个概率条
+                    PredictionBar(
+                        label = match.homeTeam.displayName,
+                        probability = prediction.homeWinProb,
+                        isHighlighted = prediction.mostLikelyOutcome == PredictionOutcome.HOME_WIN,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    PredictionBar(
+                        label = "平局",
+                        probability = prediction.drawProb,
+                        isHighlighted = prediction.mostLikelyOutcome == PredictionOutcome.DRAW,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    PredictionBar(
+                        label = match.awayTeam.displayName,
+                        probability = prediction.awayWinProb,
+                        isHighlighted = prediction.mostLikelyOutcome == PredictionOutcome.AWAY_WIN,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
         }
     }

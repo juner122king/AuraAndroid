@@ -18,5 +18,9 @@ data class MatchDto(
     @SerializedName("home_score")
     val homeScore: Int?,
     @SerializedName("away_score")
-    val awayScore: Int?
+    val awayScore: Int?,
+    @SerializedName("round")
+    val round: String?,
+    @SerializedName("round_number")
+    val roundNumber: Int?
 )

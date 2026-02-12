@@ -1,5 +1,6 @@
 package com.aura.football.presentation.home.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -22,39 +23,50 @@ fun DateSeparator(
     isToday: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // 使用Surface提供背景色，确保sticky时不透明，覆盖下方内容
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.background
+    // 使用Box提供背景色，确保sticky时不透明，覆盖下方内容
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            HorizontalDivider(modifier = Modifier.weight(1f))
+            // 左侧竖条指示器
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(24.dp)
+                    .background(
+                        color = if (isToday)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.outlineVariant,
+                        shape = MaterialTheme.shapes.extraSmall
+                    )
+            )
 
-            Surface(
+            // 日期文本
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.SemiBold,
                 color = if (isToday)
-                    MaterialTheme.colorScheme.primaryContainer
+                    MaterialTheme.colorScheme.primary
                 else
-                    MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.small
-            ) {
-                Text(
-                    text = text,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isToday)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.weight(1f))
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
+
+        // 底部细线分隔
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     }
 }
+

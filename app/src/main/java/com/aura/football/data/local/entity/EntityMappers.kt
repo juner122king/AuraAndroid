@@ -17,7 +17,9 @@ fun MatchDto.toEntity(): MatchEntity {
         matchTime = matchTime,
         status = status,
         homeScore = homeScore,
-        awayScore = awayScore
+        awayScore = awayScore,
+        round = round,
+        roundNumber = roundNumber
     )
 }
 
@@ -65,7 +67,9 @@ fun MatchWithRelations.toDomain(): Match {
         score = if (match.homeScore != null && match.awayScore != null) {
             Score(match.homeScore, match.awayScore)
         } else null,
-        prediction = prediction?.toDomain()
+        prediction = prediction?.toDomain(),
+        round = match.round,
+        roundNumber = match.roundNumber
     )
 }
 

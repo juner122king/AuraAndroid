@@ -10,7 +10,9 @@ data class Match(
     val matchTime: LocalDateTime,
     val status: MatchStatus,
     val score: Score?,
-    val prediction: Prediction?
+    val prediction: Prediction?,
+    val round: String? = null,
+    val roundNumber: Int? = null
 )
 
 data class Score(

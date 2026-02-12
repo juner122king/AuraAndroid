@@ -23,6 +23,10 @@ data class MatchWithDetailsDto(
     val homeScore: Int?,
     @SerializedName("away_score")
     val awayScore: Int?,
+    @SerializedName("round")
+    val round: String?,
+    @SerializedName("round_number")
+    val roundNumber: Int?,
     @SerializedName("home_team")
     val homeTeam: TeamDto,
     @SerializedName("away_team")

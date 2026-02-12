@@ -20,6 +20,7 @@ import com.aura.football.presentation.common.ErrorState
 import com.aura.football.presentation.common.LoadingState
 import com.aura.football.presentation.common.MatchCard
 import com.aura.football.presentation.home.components.DateSeparator
+import com.aura.football.presentation.home.components.LeagueFilterDropdown
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
@@ -30,11 +31,31 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val leagues by viewModel.leagues.collectAsStateWithLifecycle()
+    val selectedLeagueIds by viewModel.selectedLeagueIds.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Aura足球") },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("Aura足球")
+
+                        // 联赛筛选器 - 紧凑版
+                        if (leagues.isNotEmpty()) {
+                            LeagueFilterDropdown(
+                                leagues = leagues,
+                                selectedLeagueIds = selectedLeagueIds,
+                                onSelectionChange = viewModel::updateLeagueFilter,
+                                modifier = Modifier.width(140.dp),
+                                compact = true
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = Color.White
@@ -56,7 +77,6 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Content
             when (val state = uiState) {
                 is HomeUiState.Loading -> LoadingState()
                 is HomeUiState.Error -> ErrorState(

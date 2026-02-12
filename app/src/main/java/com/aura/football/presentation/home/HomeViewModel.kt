@@ -3,8 +3,10 @@ package com.aura.football.presentation.home
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aura.football.domain.model.League
 import com.aura.football.domain.model.Match
 import com.aura.football.domain.model.TimelineSection
+import com.aura.football.domain.repository.LeagueRepository
 import com.aura.football.domain.usecase.GetTimelineMatchesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -15,11 +17,20 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val getTimelineMatchesUseCase: GetTimelineMatchesUseCase
+    private val getTimelineMatchesUseCase: GetTimelineMatchesUseCase,
+    private val leagueRepository: LeagueRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    // 联赛列表
+    private val _leagues = MutableStateFlow<List<League>>(emptyList())
+    val leagues: StateFlow<List<League>> = _leagues.asStateFlow()
+
+    // 选中的联赛ID集合 (空集合表示显示全部)
+    private val _selectedLeagueIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedLeagueIds: StateFlow<Set<Long>> = _selectedLeagueIds.asStateFlow()
 
     // 缓存已加载的比赛数据，避免重复加载
     private val matchesCache = mutableMapOf<LocalDate, List<Match>>()
@@ -30,6 +41,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         Log.d(TAG, "HomeViewModel initialized")
+        loadLeagues()
         loadInitialTimeline()
     }
 
@@ -61,24 +73,78 @@ class HomeViewModel @Inject constructor(
                         earliestLoadedDate = startDate
                         latestLoadedDate = endDate
 
-                        val sections = groupMatchesByDate(getAllCachedMatches())
-                        _uiState.value = if (sections.isEmpty()) {
-                            HomeUiState.Empty
-                        } else {
-                            HomeUiState.Success(
-                                TimelineUiState(
-                                    sections = sections,
-                                    canLoadMorePast = true,
-                                    canLoadMoreFuture = true
-                                )
-                            )
-                        }
+                        updateUiState()
                     }
             } catch (e: Exception) {
                 Log.e(TAG, "加载时间轴异常", e)
                 _uiState.value = HomeUiState.Error("加载失败: ${e.message}")
             }
         }
+    }
+
+    /**
+     * 加载联赛列表
+     */
+    private fun loadLeagues() {
+        viewModelScope.launch {
+            try {
+                _leagues.value = leagueRepository.getLeagues()
+                Log.d(TAG, "加载联赛列表成功: ${_leagues.value.size}个联赛")
+            } catch (e: Exception) {
+                Log.e(TAG, "加载联赛列表失败", e)
+            }
+        }
+    }
+
+    /**
+     * 更新联赛筛选
+     */
+    fun updateLeagueFilter(leagueIds: Set<Long>) {
+        _selectedLeagueIds.value = leagueIds
+        updateUiState()
+    }
+
+    /**
+     * 更新UI状态（应用筛选）
+     */
+    private fun updateUiState() {
+        val allMatches = getAllCachedMatches()
+        val filtered = filterMatchesByLeagues(allMatches)
+        val sections = groupMatchesByDate(filtered)
+
+        _uiState.value = if (sections.isEmpty()) {
+            HomeUiState.Empty
+        } else {
+            val currentState = _uiState.value
+            val canLoadMorePast = if (currentState is HomeUiState.Success) {
+                currentState.timeline.canLoadMorePast
+            } else {
+                true
+            }
+            val canLoadMoreFuture = if (currentState is HomeUiState.Success) {
+                currentState.timeline.canLoadMoreFuture
+            } else {
+                true
+            }
+
+            HomeUiState.Success(
+                TimelineUiState(
+                    sections = sections,
+                    canLoadMorePast = canLoadMorePast,
+                    canLoadMoreFuture = canLoadMoreFuture
+                )
+            )
+        }
+    }
+
+    /**
+     * 按联赛筛选比赛
+     */
+    private fun filterMatchesByLeagues(matches: List<Match>): List<Match> {
+        if (_selectedLeagueIds.value.isEmpty()) {
+            return matches // 空集合表示显示全部
+        }
+        return matches.filter { it.league.id in _selectedLeagueIds.value }
     }
 
     /**
@@ -124,7 +190,9 @@ class HomeViewModel @Inject constructor(
                         cacheMatches(matches)
                         earliestLoadedDate = startDate
 
-                        val sections = groupMatchesByDate(getAllCachedMatches())
+                        val allMatches = getAllCachedMatches()
+                        val filtered = filterMatchesByLeagues(allMatches)
+                        val sections = groupMatchesByDate(filtered)
                         _uiState.value = HomeUiState.Success(
                             TimelineUiState(
                                 sections = sections,
@@ -183,7 +251,9 @@ class HomeViewModel @Inject constructor(
                         cacheMatches(matches)
                         latestLoadedDate = endDate
 
-                        val sections = groupMatchesByDate(getAllCachedMatches())
+                        val allMatches = getAllCachedMatches()
+                        val filtered = filterMatchesByLeagues(allMatches)
+                        val sections = groupMatchesByDate(filtered)
                         _uiState.value = HomeUiState.Success(
                             TimelineUiState(
                                 sections = sections,

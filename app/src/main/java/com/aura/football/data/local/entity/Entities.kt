@@ -27,6 +27,10 @@ data class MatchEntity(
     val homeScore: Int?,
     @ColumnInfo(name = "away_score")
     val awayScore: Int?,
+    @ColumnInfo(name = "round")
+    val round: String?,
+    @ColumnInfo(name = "round_number")
+    val roundNumber: Int?,
     @ColumnInfo(name = "updated_at")
     val updatedAt: Long = System.currentTimeMillis()
 )

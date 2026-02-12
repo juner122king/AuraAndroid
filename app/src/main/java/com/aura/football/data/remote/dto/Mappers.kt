@@ -20,7 +20,9 @@ fun MatchWithDetailsDto.toDomain(): Match {
         score = if (homeScore != null && awayScore != null) {
             Score(homeScore, awayScore)
         } else null,
-        prediction = null
+        prediction = null,
+        round = round,
+        roundNumber = roundNumber
     )
 }
 
@@ -116,7 +118,9 @@ fun MatchPredictionViewDto.toDomain(): Match {
                 explanation = explanations?.joinToString("\n") ?: "暂无分析",
                 modelVersion = modelVersion ?: "v1.0"
             )
-        } else null
+        } else null,
+        round = round,
+        roundNumber = roundNumber
     )
 }
 
