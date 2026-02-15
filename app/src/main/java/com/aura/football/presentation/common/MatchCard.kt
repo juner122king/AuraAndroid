@@ -16,9 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.aura.football.domain.model.Match
 import com.aura.football.domain.model.MatchStatus
 import com.aura.football.domain.model.Prediction
@@ -37,7 +39,7 @@ fun MatchCard(
     modifier: Modifier = Modifier
 ) {
     // 添加调试日志
-    Log.d("MatchCard", "Match ${match.id}: prediction = ${match.prediction != null}")
+    Log.d("MatchCard", "Match ${match.id}: homeTeam.logoUrl = ${match.homeTeam.logoUrl}, awayTeam.logoUrl = ${match.awayTeam.logoUrl}")
 
     Card(
         onClick = onClick,
@@ -58,6 +60,16 @@ fun MatchCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // League emblem
+                    match.league.emblemUrl?.let { url ->
+                        AsyncImage(
+                            model = url,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+
                     Text(
                         text = match.league.name,
                         style = MaterialTheme.typography.labelMedium,
@@ -125,25 +137,59 @@ fun MatchCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Home team
-                Column(
+                Row(
                     modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.Center
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // 英文缩写
-                    Text(
-                        text = match.homeTeam.shortName ?: match.homeTeam.name,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    // 中文名称
-                    Text(
-                        text = match.homeTeam.nameZh ?: match.homeTeam.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    // Home team logo
+                    if (match.homeTeam.logoUrl != null) {
+                        AsyncImage(
+                            model = match.homeTeam.logoUrl,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            contentScale = ContentScale.Fit,
+                            onError = {
+                                Log.d("MatchCard", "Failed to load home team logo: ${match.homeTeam.logoUrl}")
+                            }
+                        )
+                    } else {
+                        Log.d("MatchCard", "Home team ${match.homeTeam.name} has no logo URL")
+                        // 占位符 - 显示首字母
+                        Surface(
+                            modifier = Modifier.size(32.dp),
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = match.homeTeam.name.take(1),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        // 英文缩写
+                        Text(
+                            text = match.homeTeam.shortName ?: match.homeTeam.name,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        // 中文名称
+                        Text(
+                            text = match.homeTeam.nameZh ?: match.homeTeam.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
                 // Score or VS
@@ -169,27 +215,61 @@ fun MatchCard(
                 }
 
                 // Away team
-                Column(
+                Row(
                     modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.Center
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                 ) {
-                    // 英文缩写
-                    Text(
-                        text = match.awayTeam.shortName ?: match.awayTeam.name,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.End
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    // 中文名称
-                    Text(
-                        text = match.awayTeam.nameZh ?: match.awayTeam.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.End
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        // 英文缩写
+                        Text(
+                            text = match.awayTeam.shortName ?: match.awayTeam.name,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.End
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        // 中文名称
+                        Text(
+                            text = match.awayTeam.nameZh ?: match.awayTeam.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.End
+                        )
+                    }
+
+                    // Away team logo
+                    if (match.awayTeam.logoUrl != null) {
+                        AsyncImage(
+                            model = match.awayTeam.logoUrl,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            contentScale = ContentScale.Fit,
+                            onError = {
+                                Log.d("MatchCard", "Failed to load away team logo: ${match.awayTeam.logoUrl}")
+                            }
+                        )
+                    } else {
+                        Log.d("MatchCard", "Away team ${match.awayTeam.name} has no logo URL")
+                        // 占位符 - 显示首字母
+                        Surface(
+                            modifier = Modifier.size(32.dp),
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = match.awayTeam.name.take(1),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

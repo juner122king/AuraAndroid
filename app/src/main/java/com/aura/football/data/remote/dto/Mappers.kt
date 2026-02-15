@@ -46,7 +46,7 @@ fun LeagueDto.toDomain(): League {
         id = id,
         name = name,
         country = country,
-        logoUrl = logoUrl
+        emblemUrl = emblemUrl
     )
 }
 
@@ -102,7 +102,7 @@ fun MatchPredictionViewDto.toDomain(): Match {
             id = leagueId,
             name = leagueName,
             country = country,
-            logoUrl = leagueLogoUrl
+            emblemUrl = leagueLogoUrl
         ),
         matchTime = parseDateTime(matchTime),
         status = MatchStatus.fromString(status),

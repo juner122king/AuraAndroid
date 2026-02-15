@@ -8,8 +8,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.aura.football.domain.model.League
 
 /**
@@ -132,6 +134,16 @@ fun LeagueFilterDropdown(
                 val isSelected = selectedLeagueIds.contains(league.id)
 
                 DropdownMenuItem(
+                    leadingIcon = {
+                        league.emblemUrl?.let { url ->
+                            AsyncImage(
+                                model = url,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        } ?: Box(modifier = Modifier.size(24.dp))
+                    },
                     text = {
                         Row(
                             modifier = Modifier.fillMaxWidth(),

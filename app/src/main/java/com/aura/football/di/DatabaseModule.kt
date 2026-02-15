@@ -25,7 +25,11 @@ object DatabaseModule {
             AuraDatabase::class.java,
             "aura_database"
         )
-            .addMigrations(AuraDatabase.MIGRATION_1_2, AuraDatabase.MIGRATION_2_3)
+            .addMigrations(
+                AuraDatabase.MIGRATION_1_2,
+                AuraDatabase.MIGRATION_2_3,
+                AuraDatabase.MIGRATION_3_4
+            )
             .fallbackToDestructiveMigration()
             .build()
     }

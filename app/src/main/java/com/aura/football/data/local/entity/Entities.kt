@@ -56,8 +56,8 @@ data class LeagueEntity(
     val id: Long,
     val name: String,
     val country: String?,
-    @ColumnInfo(name = "logo_url")
-    val logoUrl: String?
+    @ColumnInfo(name = "emblem_url")
+    val emblemUrl: String?
 )
 
 @Entity(tableName = "predictions")

@@ -39,7 +39,7 @@ fun LeagueDto.toEntity(): LeagueEntity {
         id = id,
         name = name,
         country = country,
-        logoUrl = logoUrl
+        emblemUrl = emblemUrl
     )
 }
 
@@ -89,7 +89,7 @@ fun LeagueEntity.toDomain(): League {
         id = id,
         name = name,
         country = country,
-        logoUrl = logoUrl
+        emblemUrl = emblemUrl
     )
 }
 

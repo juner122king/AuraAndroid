@@ -14,7 +14,7 @@ import com.aura.football.data.local.entity.*
         LeagueEntity::class,
         PredictionEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AuraDatabase : RoomDatabase() {
@@ -37,6 +37,13 @@ abstract class AuraDatabase : RoomDatabase() {
                 // 添加 round 和 round_number 列到 matches 表
                 database.execSQL("ALTER TABLE matches ADD COLUMN round TEXT")
                 database.execSQL("ALTER TABLE matches ADD COLUMN round_number INTEGER")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 重命名 leagues 表的 logo_url 列为 emblem_url
+                database.execSQL("ALTER TABLE leagues RENAME COLUMN logo_url TO emblem_url")
             }
         }
     }

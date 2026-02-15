@@ -9,6 +9,6 @@ data class LeagueDto(
     val name: String,
     @SerializedName("country")
     val country: String?,
-    @SerializedName("logo_url")
-    val logoUrl: String?
+    @SerializedName("emblem_url")
+    val emblemUrl: String?
 )
