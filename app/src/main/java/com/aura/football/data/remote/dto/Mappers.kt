@@ -149,9 +149,13 @@ private fun parseDateTime(dateString: String): LocalDateTime {
             }
         }
 
-        // 转换为系统默认时区的本地时间
-        val localTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime()
-        android.util.Log.d("TimeConversion", "UTC: $dateString -> Local: $localTime (Zone: ${ZoneId.systemDefault()})")
+        // 使用 Android TimeZone API 获取正确的系统时区
+        val timeZone = java.util.TimeZone.getDefault()
+        val zoneId = timeZone.toZoneId()
+
+        // 转换为本地时区的时间
+        val localTime = instant.atZone(zoneId).toLocalDateTime()
+        android.util.Log.d("TimeConversion", "UTC: $dateString -> Local: $localTime (Zone: $zoneId, Offset: ${timeZone.rawOffset / 3600000}h)")
         localTime
     } catch (e: Exception) {
         android.util.Log.e("TimeConversion", "Failed to parse datetime: $dateString", e)
