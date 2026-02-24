@@ -48,16 +48,19 @@ class TeamRepositoryImpl @Inject constructor(
                 // 3. 缓存到本地
                 teamDao.insertTeams(allTeams.map { it.toEntity() })
 
-                // 4. 按联赛分组
+                // 4. 按联赛分组（使用Map避免O(n*m)查找）
                 val leagueMap = mutableMapOf<Long, MutableSet<Team>>()
                 val leagueInfoMap = mutableMapOf<Long, League>()
+
+                val teamsById = allTeams.associateBy { it.id }
+                val leaguesById = allLeagues.associateBy { it.id }
 
                 matchesResponse.forEach { match ->
                     val leagueId = match.leagueId
 
                     // 保存联赛信息
                     if (!leagueInfoMap.containsKey(leagueId)) {
-                        allLeagues.find { it.id == leagueId }?.let {
+                        leaguesById[leagueId]?.let {
                             leagueInfoMap[leagueId] = it.toDomain()
                         }
                     }
@@ -68,10 +71,10 @@ class TeamRepositoryImpl @Inject constructor(
                     }
 
                     // 添加主队和客队
-                    allTeams.find { it.id == match.homeTeamId }?.let { team ->
+                    teamsById[match.homeTeamId]?.let { team ->
                         leagueMap[leagueId]?.add(team.toDomain())
                     }
-                    allTeams.find { it.id == match.awayTeamId }?.let { team ->
+                    teamsById[match.awayTeamId]?.let { team ->
                         leagueMap[leagueId]?.add(team.toDomain())
                     }
                 }

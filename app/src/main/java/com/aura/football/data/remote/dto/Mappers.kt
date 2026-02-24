@@ -1,10 +1,7 @@
 package com.aura.football.data.remote.dto
 
 import com.aura.football.domain.model.*
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import com.aura.football.util.parseDateTime
 
 /**
  * 转换包含完整关联数据的比赛DTO
@@ -124,48 +121,3 @@ fun MatchPredictionViewDto.toDomain(): Match {
     )
 }
 
-/**
- * 将UTC时间字符串转换为本地时间
- * 支持多种ISO格式：
- * - 2026-02-06T19:00:00Z
- * - 2026-02-06T19:00:00+00:00
- * - 2026-02-06T19:00:00
- */
-private fun parseDateTime(dateString: String): LocalDateTime {
-    return try {
-        val instant = when {
-            // 格式1: 2026-02-06T19:00:00Z
-            dateString.endsWith("Z") -> {
-                Instant.parse(dateString)
-            }
-            // 格式2: 2026-02-06T19:00:00+00:00 或其他时区偏移
-            dateString.contains("+") || dateString.lastIndexOf("-") > 10 -> {
-                // 使用OffsetDateTime解析带时区偏移的时间
-                java.time.OffsetDateTime.parse(dateString).toInstant()
-            }
-            // 格式3: 2026-02-06T19:00:00 (假设是UTC)
-            else -> {
-                Instant.parse("${dateString}Z")
-            }
-        }
-
-        // 使用 Android TimeZone API 获取正确的系统时区
-        val timeZone = java.util.TimeZone.getDefault()
-        val zoneId = timeZone.toZoneId()
-
-        // 转换为本地时区的时间
-        val localTime = instant.atZone(zoneId).toLocalDateTime()
-        android.util.Log.d("TimeConversion", "UTC: $dateString -> Local: $localTime (Zone: $zoneId, Offset: ${timeZone.rawOffset / 3600000}h)")
-        localTime
-    } catch (e: Exception) {
-        android.util.Log.e("TimeConversion", "Failed to parse datetime: $dateString", e)
-        try {
-            // 如果上面失败，尝试直接解析为LocalDateTime（假设已经是本地时间）
-            LocalDateTime.parse(dateString, DateTimeFormatter.ISO_DATE_TIME)
-        } catch (e2: Exception) {
-            android.util.Log.e("TimeConversion", "Failed to parse as LocalDateTime", e2)
-            // 如果都失败，返回当前时间
-            LocalDateTime.now()
-        }
-    }
-}

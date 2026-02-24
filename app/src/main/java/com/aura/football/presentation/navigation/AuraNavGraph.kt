@@ -1,14 +1,11 @@
 package com.aura.football.presentation.navigation
 
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -79,15 +76,11 @@ fun MainScreen(
     ) { paddingValues ->
         when (selectedTab) {
             0 -> HomeScreen(
-                onMatchClick = onMatchClick,
-                modifier = Modifier.padding(paddingValues)
+                onMatchClick = onMatchClick
             )
-            1 -> StandingsScreen(
-                modifier = Modifier.padding(paddingValues)
-            )
+            1 -> StandingsScreen()
             2 -> TeamInfoScreen(
-                onMatchClick = onMatchClick,
-                modifier = Modifier.padding(paddingValues)
+                onMatchClick = onMatchClick
             )
         }
     }
@@ -100,20 +93,4 @@ enum class BottomNavItem(
     MATCHES("赛程", Icons.Default.DateRange),
     STANDINGS("榜单", Icons.Default.List),
     TEAM("球队", Icons.Default.Shield)
-}
-
-// Extension function for screens with padding
-@Composable
-fun HomeScreen(
-    onMatchClick: (Long) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    HomeScreen(onMatchClick = onMatchClick)
-}
-
-@Composable
-fun StandingsScreen(
-    modifier: Modifier = Modifier
-) {
-    StandingsScreen()
 }

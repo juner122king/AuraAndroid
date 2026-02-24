@@ -1,5 +1,6 @@
 package com.aura.football.di
 
+import com.aura.football.BuildConfig
 import com.aura.football.data.remote.SupabaseApi
 import com.aura.football.data.remote.SupabaseConfig
 import dagger.Module
@@ -38,7 +39,11 @@ object NetworkModule {
         supabaseInterceptor: Interceptor
     ): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
 
         return OkHttpClient.Builder()

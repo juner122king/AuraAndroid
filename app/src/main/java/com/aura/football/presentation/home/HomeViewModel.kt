@@ -281,13 +281,17 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * 缓存比赛数据
+     * 缓存比赛数据（限制最大缓存范围为60天）
      */
     private fun cacheMatches(matches: List<Match>) {
         matches.groupBy { it.matchTime.toLocalDate() }
             .forEach { (date, matchList) ->
                 matchesCache[date] = matchList
             }
+
+        // 限制缓存大小：只保留最近60天的数据
+        val cutoff = LocalDate.now().minusDays(MAX_CACHE_DAYS)
+        matchesCache.keys.removeAll { it.isBefore(cutoff) }
     }
 
     /**
@@ -339,6 +343,7 @@ class HomeViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "HomeViewModel"
+        private const val MAX_CACHE_DAYS = 60L
     }
 }
 

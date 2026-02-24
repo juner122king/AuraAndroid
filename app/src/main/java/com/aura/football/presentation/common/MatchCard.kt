@@ -1,11 +1,5 @@
 package com.aura.football.presentation.common
 
-import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -23,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.aura.football.domain.model.Match
 import com.aura.football.domain.model.MatchStatus
-import com.aura.football.domain.model.Prediction
 import com.aura.football.domain.model.PredictionOutcome
 import com.aura.football.presentation.theme.FinishedGray
 import com.aura.football.presentation.theme.LiveRed
@@ -38,9 +31,6 @@ fun MatchCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 添加调试日志
-    Log.d("MatchCard", "Match ${match.id}: homeTeam.logoUrl = ${match.homeTeam.logoUrl}, awayTeam.logoUrl = ${match.awayTeam.logoUrl}")
-
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
@@ -148,13 +138,9 @@ fun MatchCard(
                             model = match.homeTeam.logoUrl,
                             contentDescription = null,
                             modifier = Modifier.size(32.dp),
-                            contentScale = ContentScale.Fit,
-                            onError = {
-                                Log.d("MatchCard", "Failed to load home team logo: ${match.homeTeam.logoUrl}")
-                            }
+                            contentScale = ContentScale.Fit
                         )
                     } else {
-                        Log.d("MatchCard", "Home team ${match.homeTeam.name} has no logo URL")
                         // 占位符 - 显示首字母
                         Surface(
                             modifier = Modifier.size(32.dp),
@@ -248,13 +234,9 @@ fun MatchCard(
                             model = match.awayTeam.logoUrl,
                             contentDescription = null,
                             modifier = Modifier.size(32.dp),
-                            contentScale = ContentScale.Fit,
-                            onError = {
-                                Log.d("MatchCard", "Failed to load away team logo: ${match.awayTeam.logoUrl}")
-                            }
+                            contentScale = ContentScale.Fit
                         )
                     } else {
-                        Log.d("MatchCard", "Away team ${match.awayTeam.name} has no logo URL")
                         // 占位符 - 显示首字母
                         Surface(
                             modifier = Modifier.size(32.dp),
@@ -283,7 +265,7 @@ fun MatchCard(
                 MatchStatusChip(status = match.status)
             }
 
-            // AI Prediction Section - 简化版，只显示概率条
+            // AI Prediction Section
             match.prediction?.let { prediction ->
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -301,7 +283,7 @@ fun MatchCard(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = "🤖",
+                                text = "\uD83E\uDD16",
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Text(
@@ -355,98 +337,6 @@ fun MatchCard(
                         color = MaterialTheme.colorScheme.tertiary
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun PredictionSection(
-    prediction: Prediction,
-    homeTeamName: String,
-    awayTeamName: String,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "🤖",
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Text(
-                    text = "AI预测",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // Confidence badge
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = getConfidenceColor(prediction.confidence).copy(alpha = 0.15f)
-            ) {
-                Text(
-                    text = "置信度 ${(prediction.confidence * 100).roundToInt()}%",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = getConfidenceColor(prediction.confidence),
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Prediction bars
-        PredictionBar(
-            label = homeTeamName,
-            probability = prediction.homeWinProb,
-            isHighlighted = prediction.mostLikelyOutcome == PredictionOutcome.HOME_WIN,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        PredictionBar(
-            label = "平局",
-            probability = prediction.drawProb,
-            isHighlighted = prediction.mostLikelyOutcome == PredictionOutcome.DRAW,
-            color = MaterialTheme.colorScheme.secondary
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        PredictionBar(
-            label = awayTeamName,
-            probability = prediction.awayWinProb,
-            isHighlighted = prediction.mostLikelyOutcome == PredictionOutcome.AWAY_WIN,
-            color = MaterialTheme.colorScheme.tertiary
-        )
-
-        // Explanation (if available and not default)
-        if (prediction.explanation.isNotBlank() && prediction.explanation != "暂无分析") {
-            Spacer(modifier = Modifier.height(12.dp))
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ) {
-                Text(
-                    text = prediction.explanation,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(12.dp),
-                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight.times(1.3f)
-                )
             }
         }
     }
@@ -536,8 +426,8 @@ fun MatchStatusChip(
 @Composable
 private fun getConfidenceColor(confidence: Float): Color {
     return when {
-        confidence >= 0.8f -> Color(0xFF4CAF50) // Green - High confidence
-        confidence >= 0.6f -> Color(0xFFFF9800) // Orange - Medium confidence
-        else -> Color(0xFFF44336) // Red - Low confidence
+        confidence >= 0.8f -> Color(0xFF4CAF50)
+        confidence >= 0.6f -> Color(0xFFFF9800)
+        else -> Color(0xFFF44336)
     }
 }

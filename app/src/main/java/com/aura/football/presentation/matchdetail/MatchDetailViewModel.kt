@@ -25,7 +25,15 @@ class MatchDetailViewModel @Inject constructor(
     private val _historicalMatchups = MutableStateFlow<HistoricalMatchupsState>(HistoricalMatchupsState.Loading)
     val historicalMatchups: StateFlow<HistoricalMatchupsState> = _historicalMatchups.asStateFlow()
 
+    private var loadedMatchId: Long? = null
+
     fun loadMatchDetail(matchId: Long) {
+        // Avoid reloading if same match is already loaded
+        if (loadedMatchId == matchId && _uiState.value is MatchDetailUiState.Success) {
+            return
+        }
+
+        loadedMatchId = matchId
         viewModelScope.launch {
             _uiState.value = MatchDetailUiState.Loading
             _historicalMatchups.value = HistoricalMatchupsState.Loading

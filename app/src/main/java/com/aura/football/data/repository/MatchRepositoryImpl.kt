@@ -15,6 +15,7 @@ import com.aura.football.domain.model.HistoricalMatch
 import com.aura.football.domain.model.HistoricalMatchupStats
 import com.aura.football.domain.model.Match
 import com.aura.football.domain.repository.MatchRepository
+import com.aura.football.util.parseDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -77,21 +78,22 @@ class MatchRepositoryImpl @Inject constructor(
                     ).toEntity()
                 })
 
-                // 获取预测数据（临时方案：分开查询，然后合并）
+                // 获取预测数据（使用 match_id 过滤，避免拉取全量数据）
                 try {
                     Log.d(TAG, "开始获取预测数据...")
 
-                    // 1. 获取预测概率
-                    val predictions = api.getMatchPredictions()
                     val matchIds = matchesResponse.map { it.id }.toSet()
-                    val relevantPredictions = predictions.filter { it.matchId in matchIds }
+                    val matchIdFilter = "in.(${matchIds.joinToString(",")})"
+
+                    // 1. 获取预测概率（只获取当前比赛的）
+                    val relevantPredictions = api.getMatchPredictions(matchId = matchIdFilter)
 
                     if (relevantPredictions.isNotEmpty()) {
                         Log.d(TAG, "找到 ${relevantPredictions.size} 条预测数据")
 
-                        // 2. 获取预测说明
+                        // 2. 获取预测说明（只获取当前比赛的）
                         try {
-                            val explanations = api.getPredictionExplanations()
+                            val explanations = api.getPredictionExplanations(matchId = matchIdFilter)
                             val explanationsMap = explanations.associateBy { it.matchId }
 
                             // 3. 合并预测和说明
@@ -162,44 +164,6 @@ class MatchRepositoryImpl @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    /**
-     * 将UTC时间字符串转换为本地时间
-     * 支持多种ISO格式：
-     * - 2026-02-06T19:00:00Z
-     * - 2026-02-06T19:00:00+00:00
-     * - 2026-02-06T19:00:00
-     */
-    private fun parseDateTime(dateString: String): java.time.LocalDateTime {
-        return try {
-            val instant = when {
-                // 格式1: 2026-02-06T19:00:00Z
-                dateString.endsWith("Z") -> {
-                    java.time.Instant.parse(dateString)
-                }
-                // 格式2: 2026-02-06T19:00:00+00:00 或其他时区偏移
-                dateString.contains("+") || dateString.lastIndexOf("-") > 10 -> {
-                    // 使用OffsetDateTime解析带时区偏移的时间
-                    java.time.OffsetDateTime.parse(dateString).toInstant()
-                }
-                // 格式3: 2026-02-06T19:00:00 (假设是UTC)
-                else -> {
-                    java.time.Instant.parse("${dateString}Z")
-                }
-            }
-
-            // 转换为系统默认时区的本地时间
-            instant.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
-        } catch (e: Exception) {
-            try {
-                // 如果上面失败，尝试直接解析为LocalDateTime（假设已经是本地时间）
-                java.time.LocalDateTime.parse(dateString, java.time.format.DateTimeFormatter.ISO_DATE_TIME)
-            } catch (e: Exception) {
-                // 如果都失败，返回当前时间
-                java.time.LocalDateTime.now()
-            }
-        }
-    }
-
     companion object {
         private const val TAG = "MatchRepository"
     }
@@ -255,27 +219,32 @@ class MatchRepositoryImpl @Inject constructor(
 
     override suspend fun updateLiveMatches() {
         try {
-            val liveMatches = api.getMatches(status = "eq.live")
+            // 使用嵌入查询一次性获取完整的直播比赛数据
+            val liveMatchesWithDetails = api.getMatchesWithDetails(status = "eq.live")
 
-            if (liveMatches.isNotEmpty()) {
-                // 获取所有唯一的team IDs和league IDs
-                val teamIds = liveMatches.flatMap { listOf(it.homeTeamId, it.awayTeamId) }.distinct()
-                val leagueIds = liveMatches.map { it.leagueId }.distinct()
+            if (liveMatchesWithDetails.isNotEmpty()) {
+                val teams = liveMatchesWithDetails.flatMap {
+                    listOf(it.homeTeam, it.awayTeam)
+                }.distinctBy { it.id }
 
-                // 查询所有teams和leagues
-                val allTeams = api.getTeams()
-                val allLeagues = api.getLeagues()
+                val leagues = liveMatchesWithDetails.map { it.league }.distinctBy { it.id }
 
-                // 只插入需要的teams和leagues
-                val teamsMap = allTeams.associateBy { it.id }
-                val leaguesMap = allLeagues.associateBy { it.id }
-
-                val neededTeams = teamIds.mapNotNull { teamsMap[it] }
-                val neededLeagues = leagueIds.mapNotNull { leaguesMap[it] }
-
-                teamDao.insertTeams(neededTeams.map { it.toEntity() })
-                leagueDao.insertLeagues(neededLeagues.map { it.toEntity() })
-                matchDao.insertMatches(liveMatches.map { it.toEntity() })
+                teamDao.insertTeams(teams.map { it.toEntity() })
+                leagueDao.insertLeagues(leagues.map { it.toEntity() })
+                matchDao.insertMatches(liveMatchesWithDetails.map { dto ->
+                    com.aura.football.data.remote.dto.MatchDto(
+                        id = dto.id,
+                        homeTeamId = dto.homeTeamId,
+                        awayTeamId = dto.awayTeamId,
+                        leagueId = dto.leagueId,
+                        matchTime = dto.matchTime,
+                        status = dto.status,
+                        homeScore = dto.homeScore,
+                        awayScore = dto.awayScore,
+                        round = dto.round,
+                        roundNumber = dto.roundNumber
+                    ).toEntity()
+                })
             }
         } catch (e: Exception) {
             e.printStackTrace()

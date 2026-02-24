@@ -19,18 +19,40 @@ class LeagueRepositoryImpl @Inject constructor(
     private val leagueDao: LeagueDao
 ) : LeagueRepository {
 
+    @Volatile
+    private var lastFetchTime: Long = 0L
+
     override suspend fun getLeagues(): List<League> {
         return try {
-            // Try cache first
             val cached = leagueDao.getAllLeagues()
-            if (cached.isNotEmpty()) {
+            val now = System.currentTimeMillis()
+            val cacheExpired = now - lastFetchTime > CACHE_DURATION_MS
+
+            // Return cache immediately if available and not expired
+            if (cached.isNotEmpty() && !cacheExpired) {
                 return cached.map { it.toDomain() }
             }
 
             // Fetch from network
-            val response = api.getLeagues()
-            leagueDao.insertLeagues(response.map { it.toEntity() })
-            response.map { it.toDomain() }
+            try {
+                val response = api.getLeagues()
+                if (response.isNotEmpty()) {
+                    leagueDao.insertLeagues(response.map { it.toEntity() })
+                    lastFetchTime = now
+                    response.map { it.toDomain() }
+                } else if (cached.isNotEmpty()) {
+                    cached.map { it.toDomain() }
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                // Network failed, return cache if available
+                if (cached.isNotEmpty()) {
+                    cached.map { it.toDomain() }
+                } else {
+                    throw e
+                }
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
@@ -46,4 +68,8 @@ class LeagueRepositoryImpl @Inject constructor(
             emit(emptyList())
         }
     }.flowOn(Dispatchers.IO)
+
+    companion object {
+        private const val CACHE_DURATION_MS = 30 * 60 * 1000L // 30 minutes
+    }
 }

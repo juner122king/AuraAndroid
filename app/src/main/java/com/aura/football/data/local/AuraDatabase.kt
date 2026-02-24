@@ -15,7 +15,7 @@ import com.aura.football.data.local.entity.*
         PredictionEntity::class
     ],
     version = 4,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class AuraDatabase : RoomDatabase() {
     abstract fun matchDao(): MatchDao
