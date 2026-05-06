@@ -52,6 +52,69 @@ fun PredictionDto.toEntity(): PredictionEntity {
     )
 }
 
+fun StandingDto.toEntity(leagueId: Long): StandingEntity {
+    return StandingEntity(
+        leagueId = leagueId,
+        teamId = teamId,
+        position = position,
+        played = played,
+        won = won,
+        drawn = drawn,
+        lost = lost,
+        goalsFor = goalsFor,
+        goalsAgainst = goalsAgainst,
+        goalDifference = goalDifference,
+        points = points
+    )
+}
+
+fun Match.toEntity(): MatchEntity {
+    return MatchEntity(
+        id = id,
+        leagueId = league.id,
+        homeTeamId = homeTeam.id,
+        awayTeamId = awayTeam.id,
+        matchTime = matchTime.toString(),
+        status = status.name.lowercase(),
+        homeScore = score?.home,
+        awayScore = score?.away,
+        round = round,
+        roundNumber = roundNumber
+    )
+}
+
+fun Team.toEntity(): TeamEntity {
+    return TeamEntity(
+        id = id,
+        name = name,
+        logoUrl = logoUrl,
+        shortName = shortName,
+        nameZh = nameZh,
+        shortNameZh = shortNameZh
+    )
+}
+
+fun League.toEntity(): LeagueEntity {
+    return LeagueEntity(
+        id = id,
+        name = name,
+        country = country,
+        emblemUrl = emblemUrl
+    )
+}
+
+fun Prediction.toEntity(matchId: Long): PredictionEntity {
+    return PredictionEntity(
+        matchId = matchId,
+        modelVersion = modelVersion,
+        homeWinProb = homeWinProb,
+        drawProb = drawProb,
+        awayWinProb = awayWinProb,
+        confidence = confidence,
+        explanation = explanation
+    )
+}
+
 // Entity to Domain
 fun MatchWithRelations.toDomain(): Match {
     return Match(
@@ -101,3 +164,17 @@ fun PredictionEntity.toDomain(): Prediction {
     )
 }
 
+fun StandingWithTeam.toDomain(): Standing {
+    return Standing(
+        position = standing.position,
+        team = team.toDomain(),
+        played = standing.played,
+        won = standing.won,
+        drawn = standing.drawn,
+        lost = standing.lost,
+        goalsFor = standing.goalsFor,
+        goalsAgainst = standing.goalsAgainst,
+        goalDifference = standing.goalDifference,
+        points = standing.points
+    )
+}

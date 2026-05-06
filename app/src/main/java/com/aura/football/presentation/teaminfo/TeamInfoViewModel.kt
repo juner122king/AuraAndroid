@@ -95,7 +95,7 @@ class TeamInfoViewModel @Inject constructor(
                     val startDate = LocalDate.now().minusYears(2).toString()
                     val endDate = LocalDate.now().plusDays(30).toString()
 
-                    matchRepository.getMatches(startDate, endDate).collect { matches ->
+                    matchRepository.getMatchesForTeam(teamId, startDate, endDate).collect { matches ->
                         allMatchesCache = matches
                         processTeamInfo(teamId, leaguesWithTeams, matches)
                     }

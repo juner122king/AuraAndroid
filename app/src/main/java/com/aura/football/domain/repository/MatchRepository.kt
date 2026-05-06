@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface MatchRepository {
     fun getMatches(startDate: String, endDate: String): Flow<List<Match>>
+    fun getMatchesForTeam(teamId: Long, startDate: String, endDate: String): Flow<List<Match>>
     suspend fun getMatchById(matchId: Long): Match?
     suspend fun updateLiveMatches()
     suspend fun getHistoricalMatchups(

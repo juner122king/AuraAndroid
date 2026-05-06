@@ -1,20 +1,25 @@
 package com.aura.football.data.repository
 
-import android.util.Log
 import com.aura.football.data.local.dao.LeagueDao
 import com.aura.football.data.local.dao.MatchDao
 import com.aura.football.data.local.dao.PredictionDao
 import com.aura.football.data.local.dao.TeamDao
+import com.aura.football.data.local.entity.LeagueEntity
+import com.aura.football.data.local.entity.TeamEntity
 import com.aura.football.data.local.entity.toDomain
 import com.aura.football.data.local.entity.toEntity
 import com.aura.football.data.remote.SupabaseApi
-import com.aura.football.data.remote.dto.MatchPredictionsRpcParams
 import com.aura.football.data.remote.dto.MatchWithDetailsDto
+import com.aura.football.data.remote.dto.PredictionDto
 import com.aura.football.data.remote.dto.toDomain
 import com.aura.football.domain.model.HistoricalMatch
 import com.aura.football.domain.model.HistoricalMatchupStats
 import com.aura.football.domain.model.Match
+import com.aura.football.domain.model.Prediction
+import com.aura.football.domain.model.Score
+import com.aura.football.domain.model.MatchStatus
 import com.aura.football.domain.repository.MatchRepository
+import com.aura.football.util.AppLogger
 import com.aura.football.util.parseDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -32,222 +37,62 @@ class MatchRepositoryImpl @Inject constructor(
     private val predictionDao: PredictionDao
 ) : MatchRepository {
 
-    /**
-     * 获取比赛列表（优化版：使用嵌入式查询）
-     */
     override fun getMatches(startDate: String, endDate: String): Flow<List<Match>> = flow {
-        Log.d(TAG, "开始获取比赛: $startDate 到 $endDate")
-
-        var emittedCache = false
-
-        // 优先从网络获取（使用嵌入式查询，一次性获取所有数据）
-        try {
-            Log.d(TAG, "开始网络请求（嵌入式查询）...")
-            val matchesResponse = api.getMatchesWithDetails(
-                matchTimeGte = "gte.$startDate",
-                matchTimeLte = "lte.$endDate"
-            )
-
-            Log.d(TAG, "网络请求成功，收到 ${matchesResponse.size} 场完整比赛数据")
-
-            if (matchesResponse.isNotEmpty()) {
-                // 直接转换为Domain对象（数据已完整）
-                val matches = matchesResponse.map { it.toDomain() }
-
-                // 缓存到本地数据库
-                val teams = matchesResponse.flatMap {
-                    listOf(it.homeTeam, it.awayTeam)
-                }.distinctBy { it.id }
-
-                val leagues = matchesResponse.map { it.league }.distinctBy { it.id }
-
-                teamDao.insertTeams(teams.map { it.toEntity() })
-                leagueDao.insertLeagues(leagues.map { it.toEntity() })
-                matchDao.insertMatches(matchesResponse.map { dto ->
-                    com.aura.football.data.remote.dto.MatchDto(
-                        id = dto.id,
-                        homeTeamId = dto.homeTeamId,
-                        awayTeamId = dto.awayTeamId,
-                        leagueId = dto.leagueId,
-                        matchTime = dto.matchTime,
-                        status = dto.status,
-                        homeScore = dto.homeScore,
-                        awayScore = dto.awayScore,
-                        round = dto.round,
-                        roundNumber = dto.roundNumber
-                    ).toEntity()
-                })
-
-                // 获取预测数据（使用 match_id 过滤，避免拉取全量数据）
-                try {
-                    Log.d(TAG, "开始获取预测数据...")
-
-                    val matchIds = matchesResponse.map { it.id }.toSet()
-                    val matchIdFilter = "in.(${matchIds.joinToString(",")})"
-
-                    // 1. 获取预测概率（只获取当前比赛的）
-                    val relevantPredictions = api.getMatchPredictions(matchId = matchIdFilter)
-
-                    if (relevantPredictions.isNotEmpty()) {
-                        Log.d(TAG, "找到 ${relevantPredictions.size} 条预测数据")
-
-                        // 2. 获取预测说明（只获取当前比赛的）
-                        try {
-                            val explanations = api.getPredictionExplanations(matchId = matchIdFilter)
-                            val explanationsMap = explanations.associateBy { it.matchId }
-
-                            // 3. 合并预测和说明
-                            relevantPredictions.forEach { predDto ->
-                                // 将说明添加到 predictionExplanations 列表中
-                                val explanation = explanationsMap[predDto.matchId]
-                                val predWithExplanation = if (explanation != null) {
-                                    predDto.copy(predictionExplanations = listOf(explanation))
-                                } else {
-                                    predDto
-                                }
-
-                                predictionDao.insertPrediction(predWithExplanation.toEntity())
-                            }
-
-                            Log.d(TAG, "成功获取并缓存 ${relevantPredictions.size} 条预测数据（含 ${explanations.filter { it.matchId in matchIds }.size} 条说明）")
-                        } catch (expError: Exception) {
-                            Log.e(TAG, "获取预测说明失败: ${expError.message}", expError)
-                            // 即使说明失败，也保存预测概率
-                            relevantPredictions.forEach { predDto ->
-                                predictionDao.insertPrediction(predDto.toEntity())
-                            }
-                            Log.d(TAG, "成功获取并缓存 ${relevantPredictions.size} 条预测数据（无说明）")
-                        }
-                    } else {
-                        Log.d(TAG, "没有预测数据")
-                    }
-                } catch (predError: Exception) {
-                    Log.e(TAG, "获取预测数据失败: ${predError.message}", predError)
-                    // 预测数据失败不影响主流程
-                }
-
-                Log.d(TAG, "成功获取并缓存 ${matches.size} 场比赛数据")
-
-                // 从数据库重新查询以获取完整数据（包含刚插入的prediction）
-                val freshData = matchDao.getMatches(startDate, endDate).first()
-                val freshMatches = freshData.map { it.toDomain() }
-                val predictionsCount = freshMatches.count { it.prediction != null }
-
-                Log.d(TAG, "从数据库加载完整数据: ${freshMatches.size} 场比赛, $predictionsCount 场有预测")
-
-                emit(freshMatches)
-                emittedCache = true
-            } else {
-                emit(emptyList())
-                emittedCache = true
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "网络请求失败: ${e.message}", e)
-
-            // 网络失败，尝试从缓存加载
-            try {
-                matchDao.getMatches(startDate, endDate).collect { cachedMatches ->
-                    if (cachedMatches.isNotEmpty()) {
-                        Log.d(TAG, "网络失败，从缓存加载 ${cachedMatches.size} 场比赛")
-                        emit(cachedMatches.map { it.toDomain() })
-                        emittedCache = true
-                    }
-                }
-            } catch (cacheError: Exception) {
-                Log.e(TAG, "读取缓存也失败", cacheError)
-            }
-
-            // 如果没有emit任何数据，抛出原始错误
-            if (!emittedCache) {
-                throw e
-            }
-        }
+        emit(fetchMatchesWithFallback(startDate, endDate))
     }.flowOn(Dispatchers.IO)
 
-    companion object {
-        private const val TAG = "MatchRepository"
-    }
+    override fun getMatchesForTeam(
+        teamId: Long,
+        startDate: String,
+        endDate: String
+    ): Flow<List<Match>> = flow {
+        emit(fetchMatchesWithFallback(startDate, endDate, teamId))
+    }.flowOn(Dispatchers.IO)
 
     override suspend fun getMatchById(matchId: Long): Match? {
-        return try {
-            // Try cache first
-            matchDao.getMatchById(matchId)?.toDomain() ?: run {
-                // Fetch from network
-                val matchResponse = api.getMatchById(id = "eq.$matchId")
-                matchResponse.firstOrNull()?.let { matchDto ->
-                    // 获取关联的teams和league
-                    val homeTeamResponse = api.getTeamById(id = "eq.${matchDto.homeTeamId}")
-                    val awayTeamResponse = api.getTeamById(id = "eq.${matchDto.awayTeamId}")
-                    val leagueResponse = api.getLeagueById(id = "eq.${matchDto.leagueId}")
+        matchDao.getMatchById(matchId)?.toDomain()?.let { return it }
 
-                    val homeTeam = homeTeamResponse.firstOrNull()
-                    val awayTeam = awayTeamResponse.firstOrNull()
-                    val league = leagueResponse.firstOrNull()
+        try {
+            val fromView = api.getMatchPredictionsFromView(
+                matchId = "eq.$matchId",
+                limit = 1
+            ).firstOrNull()?.toDomain()
 
-                    if (homeTeam != null && awayTeam != null && league != null) {
-                        // Update cache
-                        teamDao.insertTeam(homeTeam.toEntity())
-                        teamDao.insertTeam(awayTeam.toEntity())
-                        leagueDao.insertLeague(league.toEntity())
-                        matchDao.insertMatch(matchDto.toEntity())
-
-                        // 组合成Match对象
-                        Match(
-                            id = matchDto.id,
-                            homeTeam = homeTeam.toDomain(),
-                            awayTeam = awayTeam.toDomain(),
-                            league = league.toDomain(),
-                            matchTime = parseDateTime(matchDto.matchTime),
-                            status = com.aura.football.domain.model.MatchStatus.fromString(matchDto.status),
-                            score = if (matchDto.homeScore != null && matchDto.awayScore != null) {
-                                com.aura.football.domain.model.Score(matchDto.homeScore, matchDto.awayScore)
-                            } else null,
-                            prediction = null,
-                            round = matchDto.round,
-                            roundNumber = matchDto.roundNumber
-                        )
-                    } else {
-                        null
-                    }
-                }
+            if (fromView != null) {
+                cacheMatches(listOf(fromView))
+                return fromView
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLogger.w(TAG, "从聚合视图读取比赛详情失败，回退旧链路", e)
+        }
+
+        return try {
+            fetchSingleMatchLegacy(matchId)?.also { cacheMatches(listOf(it)) }
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "获取比赛详情失败", e)
             null
         }
     }
 
     override suspend fun updateLiveMatches() {
         try {
-            // 使用嵌入查询一次性获取完整的直播比赛数据
-            val liveMatchesWithDetails = api.getMatchesWithDetails(status = "eq.live")
+            val liveMatches = try {
+                api.getMatchPredictionsFromView(status = "eq.live")
+                    .map { it.toDomain() }
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "从聚合视图刷新直播比赛失败，回退旧链路", e)
+                fetchLegacyMatches(
+                    startDate = null,
+                    endDate = null,
+                    status = "eq.live"
+                )
+            }
 
-            if (liveMatchesWithDetails.isNotEmpty()) {
-                val teams = liveMatchesWithDetails.flatMap {
-                    listOf(it.homeTeam, it.awayTeam)
-                }.distinctBy { it.id }
-
-                val leagues = liveMatchesWithDetails.map { it.league }.distinctBy { it.id }
-
-                teamDao.insertTeams(teams.map { it.toEntity() })
-                leagueDao.insertLeagues(leagues.map { it.toEntity() })
-                matchDao.insertMatches(liveMatchesWithDetails.map { dto ->
-                    com.aura.football.data.remote.dto.MatchDto(
-                        id = dto.id,
-                        homeTeamId = dto.homeTeamId,
-                        awayTeamId = dto.awayTeamId,
-                        leagueId = dto.leagueId,
-                        matchTime = dto.matchTime,
-                        status = dto.status,
-                        homeScore = dto.homeScore,
-                        awayScore = dto.awayScore,
-                        round = dto.round,
-                        roundNumber = dto.roundNumber
-                    ).toEntity()
-                })
+            if (liveMatches.isNotEmpty()) {
+                cacheMatches(liveMatches)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLogger.e(TAG, "刷新直播比赛失败", e)
         }
     }
 
@@ -257,49 +102,34 @@ class MatchRepositoryImpl @Inject constructor(
         leagueId: Long?
     ): HistoricalMatchupStats {
         return withContext(Dispatchers.IO) {
-            Log.d(TAG, "开始获取历史对局: $homeTeamId vs $awayTeamId (联赛ID: $leagueId)")
+            AppLogger.d(TAG, "开始获取历史对局: $homeTeamId vs $awayTeamId (联赛ID: $leagueId)")
 
             try {
-                // 构造 OR 查询条件：(home=A and away=B) or (home=B and away=A)
-                val orCondition = "(and(home_team_id.eq.$homeTeamId,away_team_id.eq.$awayTeamId),and(home_team_id.eq.$awayTeamId,away_team_id.eq.$homeTeamId))"
-
-                // 查询结果限制为最近20场对局
+                val orCondition =
+                    "(and(home_team_id.eq.$homeTeamId,away_team_id.eq.$awayTeamId),and(home_team_id.eq.$awayTeamId,away_team_id.eq.$homeTeamId))"
                 val limit = 20
 
-                var matchesResponse: List<MatchWithDetailsDto>
-
-                // 如果知道联赛ID，先查询该联赛的历史对局
-                if (leagueId != null) {
-                    Log.d(TAG, "优先查询联赛 $leagueId 的历史对局")
+                val matchesResponse: List<MatchWithDetailsDto> = if (leagueId != null) {
                     val leagueMatches = api.getHistoricalMatchups(
                         orCondition = orCondition,
                         leagueId = "eq.$leagueId",
                         limit = limit
                     )
 
-                    Log.d(TAG, "该联赛中找到 ${leagueMatches.size} 场历史对局")
-
-                    // 如果该联赛有足够的对局记录（≥3场），直接使用
                     if (leagueMatches.size >= 3) {
-                        matchesResponse = leagueMatches
+                        leagueMatches
                     } else {
-                        // 联赛内记录不足，查询所有联赛的对局
-                        Log.d(TAG, "联赛内对局记录不足，扩展查询所有联赛")
-                        matchesResponse = api.getHistoricalMatchups(
+                        api.getHistoricalMatchups(
                             orCondition = orCondition,
                             limit = limit
                         )
                     }
                 } else {
-                    // 没有联赛ID，直接查询所有联赛
-                    Log.d(TAG, "查询所有联赛的历史对局")
-                    matchesResponse = api.getHistoricalMatchups(
+                    api.getHistoricalMatchups(
                         orCondition = orCondition,
                         limit = limit
                     )
                 }
-
-                Log.d(TAG, "总共找到 ${matchesResponse.size} 场历史对局")
 
                 if (matchesResponse.isEmpty()) {
                     return@withContext HistoricalMatchupStats(
@@ -313,8 +143,6 @@ class MatchRepositoryImpl @Inject constructor(
                     )
                 }
 
-                // 直接使用嵌入查询返回的完整数据构建 HistoricalMatch 列表
-                // 数据已经按 match_time desc 排序
                 val historicalMatches = matchesResponse.mapNotNull { dto ->
                     if (dto.homeScore != null && dto.awayScore != null) {
                         HistoricalMatch(
@@ -325,12 +153,13 @@ class MatchRepositoryImpl @Inject constructor(
                             awayTeam = dto.awayTeam.toDomain(),
                             homeScore = dto.homeScore,
                             awayScore = dto.awayScore,
-                            status = com.aura.football.domain.model.MatchStatus.fromString(dto.status)
+                            status = MatchStatus.fromString(dto.status)
                         )
-                    } else null
+                    } else {
+                        null
+                    }
                 }
 
-                // 计算统计数据（从当前主队视角）
                 var homeWins = 0
                 var awayWins = 0
                 var draws = 0
@@ -338,13 +167,11 @@ class MatchRepositoryImpl @Inject constructor(
                 var awayGoals = 0
 
                 historicalMatches.forEach { match ->
-                    // 判断当前主队在历史比赛中是主场还是客场
                     val currentHomeTeamWasHome = match.homeTeam.id == homeTeamId
 
                     if (currentHomeTeamWasHome) {
                         homeGoals += match.homeScore
                         awayGoals += match.awayScore
-
                         when {
                             match.homeScore > match.awayScore -> homeWins++
                             match.homeScore < match.awayScore -> awayWins++
@@ -353,7 +180,6 @@ class MatchRepositoryImpl @Inject constructor(
                     } else {
                         homeGoals += match.awayScore
                         awayGoals += match.homeScore
-
                         when {
                             match.awayScore > match.homeScore -> homeWins++
                             match.awayScore < match.homeScore -> awayWins++
@@ -361,8 +187,6 @@ class MatchRepositoryImpl @Inject constructor(
                         }
                     }
                 }
-
-                Log.d(TAG, "历史对局统计: ${homeWins}胜 ${draws}平 ${awayWins}负, 进球 $homeGoals:$awayGoals")
 
                 HistoricalMatchupStats(
                     homeTeamWins = homeWins,
@@ -374,8 +198,7 @@ class MatchRepositoryImpl @Inject constructor(
                     matches = historicalMatches
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "获取历史对局失败: ${e.message}", e)
-                // 返回空数据而不是抛出异常
+                AppLogger.e(TAG, "获取历史对局失败", e)
                 HistoricalMatchupStats(
                     homeTeamWins = 0,
                     awayTeamWins = 0,
@@ -387,5 +210,188 @@ class MatchRepositoryImpl @Inject constructor(
                 )
             }
         }
+    }
+
+    private suspend fun fetchMatchesWithFallback(
+        startDate: String,
+        endDate: String,
+        teamId: Long? = null
+    ): List<Match> {
+        return try {
+            val matches = fetchMatchesFromView(startDate, endDate, teamId)
+            cacheMatches(matches)
+            matches.sortedBy { it.matchTime }
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "从聚合视图获取比赛失败，回退本地缓存", e)
+            val cachedMatches = getCachedMatches(startDate, endDate, teamId)
+            if (cachedMatches.isNotEmpty()) {
+                cachedMatches
+            } else {
+                val legacyMatches = fetchLegacyMatches(startDate, endDate, teamId = teamId)
+                cacheMatches(legacyMatches)
+                legacyMatches.sortedBy { it.matchTime }
+            }
+        }
+    }
+
+    private suspend fun fetchMatchesFromView(
+        startDate: String,
+        endDate: String,
+        teamId: Long? = null
+    ): List<Match> {
+        return api.getMatchPredictionsFromView(
+            matchTimeGte = "gte.$startDate",
+            matchTimeLte = "lte.$endDate",
+            orCondition = teamId?.let { "(home_team_id.eq.$it,away_team_id.eq.$it)" }
+        ).map { it.toDomain() }
+    }
+
+    private suspend fun fetchLegacyMatches(
+        startDate: String?,
+        endDate: String?,
+        teamId: Long? = null,
+        status: String? = null
+    ): List<Match> {
+        val matchesResponse = api.getMatchesWithDetails(
+            matchTimeGte = startDate?.let { "gte.$it" },
+            matchTimeLte = endDate?.let { "lte.$it" },
+            status = status
+        ).filter { dto ->
+            teamId == null || dto.homeTeamId == teamId || dto.awayTeamId == teamId
+        }
+
+        val predictionsByMatchId = fetchPredictionsByMatchId(matchesResponse.map { it.id }.toSet())
+
+        return matchesResponse.map { dto ->
+            dto.toDomain().copy(prediction = predictionsByMatchId[dto.id])
+        }
+    }
+
+    private suspend fun fetchSingleMatchLegacy(matchId: Long): Match? {
+        val matchResponse = api.getMatchById(id = "eq.$matchId")
+        val matchDto = matchResponse.firstOrNull() ?: return null
+
+        val homeTeam = api.getTeamById(id = "eq.${matchDto.homeTeamId}").firstOrNull() ?: return null
+        val awayTeam = api.getTeamById(id = "eq.${matchDto.awayTeamId}").firstOrNull() ?: return null
+        val league = api.getLeagueById(id = "eq.${matchDto.leagueId}").firstOrNull() ?: return null
+        val predictionsByMatchId = fetchPredictionsByMatchId(setOf(matchId))
+
+        return Match(
+            id = matchDto.id,
+            homeTeam = homeTeam.toDomain(),
+            awayTeam = awayTeam.toDomain(),
+            league = league.toDomain(),
+            matchTime = parseDateTime(matchDto.matchTime),
+            status = MatchStatus.fromString(matchDto.status),
+            score = if (matchDto.homeScore != null && matchDto.awayScore != null) {
+                Score(matchDto.homeScore, matchDto.awayScore)
+            } else {
+                null
+            },
+            prediction = predictionsByMatchId[matchId],
+            round = matchDto.round,
+            roundNumber = matchDto.roundNumber
+        )
+    }
+
+    private suspend fun fetchPredictionsByMatchId(matchIds: Set<Long>): Map<Long, Prediction> {
+        if (matchIds.isEmpty()) return emptyMap()
+
+        val matchIdFilter = "in.(${matchIds.joinToString(",")})"
+        val predictions = api.getMatchPredictions(matchId = matchIdFilter)
+
+        if (predictions.isEmpty()) return emptyMap()
+
+        val explanations = try {
+            api.getPredictionExplanations(matchId = matchIdFilter).associateBy { it.matchId }
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "获取预测说明失败，继续使用概率数据", e)
+            emptyMap()
+        }
+
+        return predictions.associate { predictionDto: PredictionDto ->
+            val enrichedPrediction = explanations[predictionDto.matchId]?.let { explanation ->
+                predictionDto.copy(predictionExplanations = listOf(explanation))
+            } ?: predictionDto
+
+            predictionDto.matchId to enrichedPrediction.toDomain()
+        }
+    }
+
+    private suspend fun cacheMatches(matches: List<Match>) {
+        if (matches.isEmpty()) return
+
+        val teamIds = matches.flatMap { listOf(it.homeTeam.id, it.awayTeam.id) }.distinct()
+        val existingTeams = teamDao.getTeamsByIds(teamIds).associateBy { it.id }
+        val existingLeagues = leagueDao.getAllLeagues().associateBy { it.id }
+
+        val teamsToCache = matches
+            .flatMap { listOf(it.homeTeam, it.awayTeam) }
+            .distinctBy { it.id }
+            .map { team -> mergeTeam(team, existingTeams[team.id]).toEntity() }
+
+        val leaguesToCache = matches
+            .map { it.league }
+            .distinctBy { it.id }
+            .map { league -> mergeLeague(league, existingLeagues[league.id]).toEntity() }
+
+        teamDao.insertTeams(teamsToCache)
+        leagueDao.insertLeagues(leaguesToCache)
+        matchDao.insertMatches(matches.map { it.toEntity() })
+
+        val matchIds = matches.map { it.id }
+        predictionDao.deletePredictionsByMatchIds(matchIds)
+
+        val predictionsToCache = matches.mapNotNull { match ->
+            match.prediction?.toEntity(match.id)
+        }
+
+        if (predictionsToCache.isNotEmpty()) {
+            predictionDao.insertPredictions(predictionsToCache)
+        }
+    }
+
+    private suspend fun getCachedMatches(
+        startDate: String,
+        endDate: String,
+        teamId: Long? = null
+    ): List<Match> {
+        val cached = matchDao.getMatches(startDate, endDate).first().map { it.toDomain() }
+        return if (teamId == null) {
+            cached
+        } else {
+            cached.filter { it.homeTeam.id == teamId || it.awayTeam.id == teamId }
+        }
+    }
+
+    private fun mergeTeam(team: com.aura.football.domain.model.Team, existing: TeamEntity?): com.aura.football.domain.model.Team {
+        return if (existing == null) {
+            team
+        } else {
+            team.copy(
+                shortName = team.shortName ?: existing.shortName,
+                nameZh = team.nameZh ?: existing.nameZh,
+                shortNameZh = team.shortNameZh ?: existing.shortNameZh,
+                logoUrl = team.logoUrl ?: existing.logoUrl
+            )
+        }
+    }
+
+    private fun mergeLeague(
+        league: com.aura.football.domain.model.League,
+        existing: LeagueEntity?
+    ): com.aura.football.domain.model.League {
+        return if (existing == null) {
+            league
+        } else {
+            league.copy(
+                country = league.country ?: existing.country,
+                emblemUrl = league.emblemUrl ?: existing.emblemUrl
+            )
+        }
+    }
+
+    companion object {
+        private const val TAG = "MatchRepository"
     }
 }

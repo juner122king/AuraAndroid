@@ -15,6 +15,9 @@ interface PredictionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPrediction(prediction: PredictionEntity)
 
+    @Query("DELETE FROM predictions WHERE match_id IN (:matchIds)")
+    suspend fun deletePredictionsByMatchIds(matchIds: List<Long>)
+
     @Query("DELETE FROM predictions")
     suspend fun deleteAll()
 }

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -109,6 +110,7 @@ fun TimelineMatchList(
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    var lastHandledToken by rememberSaveable { mutableIntStateOf(-1) }
 
     // 监听滚动状态，触发加载更多
     LaunchedEffect(listState) {
@@ -135,13 +137,15 @@ fun TimelineMatchList(
             }
     }
 
-    // 初始滚动到今天的位置
-    LaunchedEffect(timeline.sections) {
+    // 仅在首次加载或刷新时（token变化）自动定位到锚点日期
+    LaunchedEffect(timeline.autoScrollToken) {
+        if (timeline.autoScrollToken == lastHandledToken) return@LaunchedEffect
         if (timeline.sections.isEmpty()) return@LaunchedEffect
 
-        val todayIndex = timeline.sections.indexOfFirst { it.isToday }
-        if (todayIndex >= 0) {
-            // 计算今天section的item索引
+        val anchorDate = timeline.anchorDate ?: return@LaunchedEffect
+        val anchorIndex = timeline.sections.indexOfFirst { it.date == anchorDate }
+        if (anchorIndex >= 0) {
+            // 计算锚点section的item索引
             var itemIndex = 0
 
             // 如果顶部有loading指示器
@@ -150,13 +154,14 @@ fun TimelineMatchList(
             }
 
             // 累加之前的日期分隔符和比赛数量
-            for (i in 0 until todayIndex) {
+            for (i in 0 until anchorIndex) {
                 itemIndex += 1 // 日期分隔符
                 itemIndex += timeline.sections[i].matches.size
             }
 
-            // 滚动到今天的日期分隔符
+            // 滚动到锚点日期分隔符
             listState.scrollToItem(itemIndex)
+            lastHandledToken = timeline.autoScrollToken
         }
     }
 

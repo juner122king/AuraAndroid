@@ -1,0 +1,396 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 5,
+    "identityHash": "08462daab2495fcf1c6f38f09298ec2d",
+    "entities": [
+      {
+        "tableName": "matches",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `league_id` INTEGER NOT NULL, `home_team_id` INTEGER NOT NULL, `away_team_id` INTEGER NOT NULL, `match_time` TEXT NOT NULL, `status` TEXT NOT NULL, `home_score` INTEGER, `away_score` INTEGER, `round` TEXT, `round_number` INTEGER, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "leagueId",
+            "columnName": "league_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "homeTeamId",
+            "columnName": "home_team_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "awayTeamId",
+            "columnName": "away_team_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "matchTime",
+            "columnName": "match_time",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "homeScore",
+            "columnName": "home_score",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "awayScore",
+            "columnName": "away_score",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "round",
+            "columnName": "round",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "roundNumber",
+            "columnName": "round_number",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "teams",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `name` TEXT NOT NULL, `logo_url` TEXT, `short_name` TEXT, `name_zh` TEXT, `short_name_zh` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "logoUrl",
+            "columnName": "logo_url",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "shortName",
+            "columnName": "short_name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "nameZh",
+            "columnName": "name_zh",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "shortNameZh",
+            "columnName": "short_name_zh",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "leagues",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `name` TEXT NOT NULL, `country` TEXT, `emblem_url` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "country",
+            "columnName": "country",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "emblemUrl",
+            "columnName": "emblem_url",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "predictions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`match_id` INTEGER NOT NULL, `model_version` TEXT NOT NULL, `home_win_prob` REAL NOT NULL, `draw_prob` REAL NOT NULL, `away_win_prob` REAL NOT NULL, `confidence` REAL NOT NULL, `explanation` TEXT NOT NULL, PRIMARY KEY(`match_id`))",
+        "fields": [
+          {
+            "fieldPath": "matchId",
+            "columnName": "match_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modelVersion",
+            "columnName": "model_version",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "homeWinProb",
+            "columnName": "home_win_prob",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "drawProb",
+            "columnName": "draw_prob",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "awayWinProb",
+            "columnName": "away_win_prob",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "explanation",
+            "columnName": "explanation",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "match_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "standings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`league_id` INTEGER NOT NULL, `team_id` INTEGER NOT NULL, `position` INTEGER NOT NULL, `played` INTEGER NOT NULL, `won` INTEGER NOT NULL, `drawn` INTEGER NOT NULL, `lost` INTEGER NOT NULL, `goals_for` INTEGER NOT NULL, `goals_against` INTEGER NOT NULL, `goal_difference` INTEGER NOT NULL, `points` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`league_id`, `team_id`))",
+        "fields": [
+          {
+            "fieldPath": "leagueId",
+            "columnName": "league_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teamId",
+            "columnName": "team_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "played",
+            "columnName": "played",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "won",
+            "columnName": "won",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "drawn",
+            "columnName": "drawn",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lost",
+            "columnName": "lost",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goalsFor",
+            "columnName": "goals_for",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goalsAgainst",
+            "columnName": "goals_against",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goalDifference",
+            "columnName": "goal_difference",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "points",
+            "columnName": "points",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "league_id",
+            "team_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_standings_league_id",
+            "unique": false,
+            "columnNames": [
+              "league_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_standings_league_id` ON `${TABLE_NAME}` (`league_id`)"
+          },
+          {
+            "name": "index_standings_team_id",
+            "unique": false,
+            "columnNames": [
+              "team_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_standings_team_id` ON `${TABLE_NAME}` (`team_id`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "league_team_cross_refs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`league_id` INTEGER NOT NULL, `team_id` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`league_id`, `team_id`))",
+        "fields": [
+          {
+            "fieldPath": "leagueId",
+            "columnName": "league_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teamId",
+            "columnName": "team_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "league_id",
+            "team_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_league_team_cross_refs_league_id",
+            "unique": false,
+            "columnNames": [
+              "league_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_league_team_cross_refs_league_id` ON `${TABLE_NAME}` (`league_id`)"
+          },
+          {
+            "name": "index_league_team_cross_refs_team_id",
+            "unique": false,
+            "columnNames": [
+              "team_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_league_team_cross_refs_team_id` ON `${TABLE_NAME}` (`team_id`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '08462daab2495fcf1c6f38f09298ec2d')"
+    ]
+  }
+}

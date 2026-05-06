@@ -1,6 +1,5 @@
 package com.aura.football.presentation.home
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aura.football.domain.model.League
@@ -8,10 +7,12 @@ import com.aura.football.domain.model.Match
 import com.aura.football.domain.model.TimelineSection
 import com.aura.football.domain.repository.LeagueRepository
 import com.aura.football.domain.usecase.GetTimelineMatchesUseCase
+import com.aura.football.util.AppLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
@@ -38,9 +39,11 @@ class HomeViewModel @Inject constructor(
     // 当前已加载的日期范围
     private var earliestLoadedDate: LocalDate? = null
     private var latestLoadedDate: LocalDate? = null
+    private var autoScrollTokenCounter: Int = 0
 
     init {
-        Log.d(TAG, "HomeViewModel initialized")
+        AppLogger.d(TAG, "HomeViewModel initialized")
+        autoScrollTokenCounter++
         loadLeagues()
         loadInitialTimeline()
     }
@@ -51,7 +54,7 @@ class HomeViewModel @Inject constructor(
     fun loadInitialTimeline() {
         viewModelScope.launch {
             try {
-                Log.d(TAG, "开始加载初始时间轴")
+                AppLogger.d(TAG, "开始加载初始时间轴")
                 _uiState.value = HomeUiState.Loading
 
                 val today = LocalDate.now()
@@ -60,13 +63,13 @@ class HomeViewModel @Inject constructor(
 
                 getTimelineMatchesUseCase(startDate, endDate)
                     .catch { e ->
-                        Log.e(TAG, "加载时间轴失败", e)
+                        AppLogger.e(TAG, "加载时间轴失败", e)
                         _uiState.value = HomeUiState.Error(
                             e.message ?: "网络连接失败，请检查网络设置"
                         )
                     }
                     .collect { matches ->
-                        Log.d(TAG, "收到初始时间轴数据: ${matches.size}场比赛")
+                        AppLogger.d(TAG, "收到初始时间轴数据: ${matches.size}场比赛")
 
                         // 更新缓存
                         cacheMatches(matches)
@@ -76,7 +79,7 @@ class HomeViewModel @Inject constructor(
                         updateUiState()
                     }
             } catch (e: Exception) {
-                Log.e(TAG, "加载时间轴异常", e)
+                AppLogger.e(TAG, "加载时间轴异常", e)
                 _uiState.value = HomeUiState.Error("加载失败: ${e.message}")
             }
         }
@@ -89,9 +92,9 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _leagues.value = leagueRepository.getLeagues()
-                Log.d(TAG, "加载联赛列表成功: ${_leagues.value.size}个联赛")
+                AppLogger.d(TAG, "加载联赛列表成功: ${_leagues.value.size}个联赛")
             } catch (e: Exception) {
-                Log.e(TAG, "加载联赛列表失败", e)
+                AppLogger.e(TAG, "加载联赛列表失败", e)
             }
         }
     }
@@ -130,6 +133,8 @@ class HomeViewModel @Inject constructor(
             HomeUiState.Success(
                 TimelineUiState(
                     sections = sections,
+                    anchorDate = findNearestAnchorDate(sections, LocalDate.now()),
+                    autoScrollToken = autoScrollTokenCounter,
                     canLoadMorePast = canLoadMorePast,
                     canLoadMoreFuture = canLoadMoreFuture
                 )
@@ -160,7 +165,7 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                Log.d(TAG, "开始加载更多过去的比赛")
+                AppLogger.d(TAG, "开始加载更多过去的比赛")
 
                 // 更新loading状态
                 _uiState.value = HomeUiState.Success(
@@ -177,14 +182,14 @@ class HomeViewModel @Inject constructor(
 
                 getTimelineMatchesUseCase(startDate, endDate)
                     .catch { e ->
-                        Log.e(TAG, "加载更多过去比赛失败", e)
+                        AppLogger.e(TAG, "加载更多过去比赛失败", e)
                         // 恢复状态
                         _uiState.value = HomeUiState.Success(
                             currentState.timeline.copy(isLoadingPast = false)
                         )
                     }
                     .collect { matches ->
-                        Log.d(TAG, "收到更多过去的比赛: ${matches.size}场")
+                        AppLogger.d(TAG, "收到更多过去的比赛: ${matches.size}场")
 
                         // 更新缓存
                         cacheMatches(matches)
@@ -196,6 +201,8 @@ class HomeViewModel @Inject constructor(
                         _uiState.value = HomeUiState.Success(
                             TimelineUiState(
                                 sections = sections,
+                                anchorDate = findNearestAnchorDate(sections, LocalDate.now()),
+                                autoScrollToken = currentState.timeline.autoScrollToken,
                                 isLoadingPast = false,
                                 canLoadMorePast = canLoadMore,
                                 canLoadMoreFuture = currentState.timeline.canLoadMoreFuture
@@ -203,7 +210,7 @@ class HomeViewModel @Inject constructor(
                         )
                     }
             } catch (e: Exception) {
-                Log.e(TAG, "加载更多过去比赛异常", e)
+                AppLogger.e(TAG, "加载更多过去比赛异常", e)
             }
         }
     }
@@ -221,7 +228,7 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                Log.d(TAG, "开始加载更多未来的比赛")
+                AppLogger.d(TAG, "开始加载更多未来的比赛")
 
                 // 更新loading状态
                 _uiState.value = HomeUiState.Success(
@@ -238,14 +245,14 @@ class HomeViewModel @Inject constructor(
 
                 getTimelineMatchesUseCase(startDate, endDate)
                     .catch { e ->
-                        Log.e(TAG, "加载更多未来比赛失败", e)
+                        AppLogger.e(TAG, "加载更多未来比赛失败", e)
                         // 恢复状态
                         _uiState.value = HomeUiState.Success(
                             currentState.timeline.copy(isLoadingFuture = false)
                         )
                     }
                     .collect { matches ->
-                        Log.d(TAG, "收到更多未来的比赛: ${matches.size}场")
+                        AppLogger.d(TAG, "收到更多未来的比赛: ${matches.size}场")
 
                         // 更新缓存
                         cacheMatches(matches)
@@ -257,6 +264,8 @@ class HomeViewModel @Inject constructor(
                         _uiState.value = HomeUiState.Success(
                             TimelineUiState(
                                 sections = sections,
+                                anchorDate = findNearestAnchorDate(sections, LocalDate.now()),
+                                autoScrollToken = currentState.timeline.autoScrollToken,
                                 isLoadingFuture = false,
                                 canLoadMorePast = currentState.timeline.canLoadMorePast,
                                 canLoadMoreFuture = canLoadMore
@@ -264,7 +273,7 @@ class HomeViewModel @Inject constructor(
                         )
                     }
             } catch (e: Exception) {
-                Log.e(TAG, "加载更多未来比赛异常", e)
+                AppLogger.e(TAG, "加载更多未来比赛异常", e)
             }
         }
     }
@@ -277,6 +286,7 @@ class HomeViewModel @Inject constructor(
         matchesCache.clear()
         earliestLoadedDate = null
         latestLoadedDate = null
+        autoScrollTokenCounter++
         loadInitialTimeline()
     }
 
@@ -288,10 +298,6 @@ class HomeViewModel @Inject constructor(
             .forEach { (date, matchList) ->
                 matchesCache[date] = matchList
             }
-
-        // 限制缓存大小：只保留最近60天的数据
-        val cutoff = LocalDate.now().minusDays(MAX_CACHE_DAYS)
-        matchesCache.keys.removeAll { it.isBefore(cutoff) }
     }
 
     /**
@@ -341,9 +347,29 @@ class HomeViewModel @Inject constructor(
             .sortedBy { it.date }
     }
 
+    private fun findNearestAnchorDate(
+        sections: List<TimelineSection>,
+        baseDate: LocalDate
+    ): LocalDate? {
+        if (sections.isEmpty()) return null
+        if (sections.any { it.date == baseDate }) return baseDate
+
+        return sections
+            .map { it.date }
+            .sortedWith(
+                compareBy<LocalDate> { kotlin.math.abs(ChronoUnit.DAYS.between(baseDate, it)) }
+                    .thenByDescending { !it.isBefore(baseDate) }
+            )
+            .firstOrNull()
+    }
+
+    internal fun testFindNearestAnchorDate(
+        sections: List<TimelineSection>,
+        baseDate: LocalDate
+    ): LocalDate? = findNearestAnchorDate(sections, baseDate)
+
     companion object {
         private const val TAG = "HomeViewModel"
-        private const val MAX_CACHE_DAYS = 60L
     }
 }
 
@@ -352,6 +378,8 @@ class HomeViewModel @Inject constructor(
  */
 data class TimelineUiState(
     val sections: List<TimelineSection>,
+    val anchorDate: LocalDate? = null,
+    val autoScrollToken: Int = 0,
     val isLoadingPast: Boolean = false,
     val isLoadingFuture: Boolean = false,
     val canLoadMorePast: Boolean = true,

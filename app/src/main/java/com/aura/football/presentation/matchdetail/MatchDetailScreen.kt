@@ -71,7 +71,7 @@ fun MatchDetailContent(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("比赛信息", "AI预测", "球队对比", "历史对局")
+    val tabs = listOf("比赛信息", "AI预测", "历史对局")
 
     Column(modifier = modifier.fillMaxSize()) {
         // Match header
@@ -92,8 +92,7 @@ fun MatchDetailContent(
         when (selectedTab) {
             0 -> MatchInfoTab(match = match)
             1 -> PredictionTab(match = match)
-            2 -> TeamComparisonTab(match = match)
-            3 -> {
+            2 -> {
                 when (val state = historicalMatchupsState) {
                     is HistoricalMatchupsState.Loading -> {
                         Box(
@@ -367,39 +366,6 @@ fun PredictionTab(
 }
 
 @Composable
-fun TeamComparisonTab(
-    match: Match,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = "球队信息",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-
-        Card {
-            Column(modifier = Modifier.padding(16.dp)) {
-                TeamInfoRow(label = "主队", value = match.homeTeam.name)
-                TeamInfoRow(label = "客队", value = match.awayTeam.name)
-            }
-        }
-
-        Text(
-            text = "更多对比数据开发中...",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 16.dp)
-        )
-    }
-}
-
-@Composable
 fun InfoRow(
     label: String,
     value: String,
@@ -412,26 +378,6 @@ fun InfoRow(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-fun TeamInfoRow(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.padding(vertical = 4.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(

@@ -3,6 +3,7 @@ package com.aura.football.data.local.entity
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.aura.football.domain.model.Match
 import com.aura.football.domain.model.MatchStatus
@@ -77,6 +78,46 @@ data class PredictionEntity(
     val explanation: String
 )
 
+@Entity(
+    tableName = "standings",
+    primaryKeys = ["league_id", "team_id"],
+    indices = [Index("league_id"), Index("team_id")]
+)
+data class StandingEntity(
+    @ColumnInfo(name = "league_id")
+    val leagueId: Long,
+    @ColumnInfo(name = "team_id")
+    val teamId: Long,
+    val position: Int,
+    val played: Int,
+    val won: Int,
+    val drawn: Int,
+    val lost: Int,
+    @ColumnInfo(name = "goals_for")
+    val goalsFor: Int,
+    @ColumnInfo(name = "goals_against")
+    val goalsAgainst: Int,
+    @ColumnInfo(name = "goal_difference")
+    val goalDifference: Int,
+    val points: Int,
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "league_team_cross_refs",
+    primaryKeys = ["league_id", "team_id"],
+    indices = [Index("league_id"), Index("team_id")]
+)
+data class LeagueTeamCrossRef(
+    @ColumnInfo(name = "league_id")
+    val leagueId: Long,
+    @ColumnInfo(name = "team_id")
+    val teamId: Long,
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
 data class MatchWithRelations(
     @Embedded val match: MatchEntity,
     @Embedded(prefix = "ht_")
@@ -87,4 +128,17 @@ data class MatchWithRelations(
     val league: LeagueEntity,
     @Embedded(prefix = "pred_")
     val prediction: PredictionEntity?
+)
+
+data class StandingWithTeam(
+    @Embedded val standing: StandingEntity,
+    @Embedded(prefix = "tm_")
+    val team: TeamEntity
+)
+
+data class LeagueTeamRow(
+    @Embedded(prefix = "lg_")
+    val league: LeagueEntity,
+    @Embedded(prefix = "tm_")
+    val team: TeamEntity
 )

@@ -118,9 +118,11 @@ interface SupabaseApi {
     @GET("match_predictions_view")
     suspend fun getMatchPredictionsFromView(
         @Query("select") select: String = "*",
+        @Query("match_id") matchId: String? = null,
         @Query("match_time") matchTimeGte: String? = null,
         @Query("match_time") matchTimeLte: String? = null,
         @Query("status") status: String? = null,
+        @Query("or") orCondition: String? = null,
         @Query("league_id") leagueId: String? = null,
         @Query("order") order: String = "match_time.asc",
         @Query("limit") limit: Int? = null,

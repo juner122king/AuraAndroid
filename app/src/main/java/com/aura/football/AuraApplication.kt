@@ -2,9 +2,13 @@ package com.aura.football
 
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
-import androidx.work.*
+import androidx.work.Configuration
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import dagger.hilt.android.HiltAndroidApp
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -16,7 +20,7 @@ class AuraApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
 
-        // Setup periodic work for updating live matches
+        // Use self-rescheduling one-time work so polling frequency can adapt to match state.
         setupMatchUpdateWorker()
     }
 
@@ -26,9 +30,7 @@ class AuraApplication : Application(), Configuration.Provider {
             .build()
 
     private fun setupMatchUpdateWorker() {
-        val updateRequest = PeriodicWorkRequestBuilder<MatchUpdateWorker>(
-            15, TimeUnit.MINUTES
-        )
+        val updateRequest = OneTimeWorkRequestBuilder<MatchUpdateWorker>()
             .setConstraints(
                 Constraints.Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -36,10 +38,16 @@ class AuraApplication : Application(), Configuration.Provider {
             )
             .build()
 
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "match_update",
-            ExistingPeriodicWorkPolicy.KEEP,
+        WorkManager.getInstance(this).enqueueUniqueWork(
+            MATCH_UPDATE_WORK_NAME,
+            ExistingWorkPolicy.KEEP,
             updateRequest
         )
+    }
+
+    companion object {
+        const val MATCH_UPDATE_WORK_NAME = "match_update"
+        const val ACTIVE_POLLING_MINUTES = 15L
+        const val IDLE_POLLING_MINUTES = 120L
     }
 }

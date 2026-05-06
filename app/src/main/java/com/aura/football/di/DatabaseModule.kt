@@ -28,9 +28,9 @@ object DatabaseModule {
             .addMigrations(
                 AuraDatabase.MIGRATION_1_2,
                 AuraDatabase.MIGRATION_2_3,
-                AuraDatabase.MIGRATION_3_4
+                AuraDatabase.MIGRATION_3_4,
+                AuraDatabase.MIGRATION_4_5
             )
-            .fallbackToDestructiveMigration()
             .build()
     }
 
@@ -56,5 +56,17 @@ object DatabaseModule {
     @Singleton
     fun providePredictionDao(database: AuraDatabase): PredictionDao {
         return database.predictionDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideStandingDao(database: AuraDatabase): StandingDao {
+        return database.standingDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLeagueTeamDao(database: AuraDatabase): LeagueTeamDao {
+        return database.leagueTeamDao()
     }
 }

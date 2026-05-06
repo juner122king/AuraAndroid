@@ -54,6 +54,18 @@ interface MatchDao {
     @Query("SELECT * FROM matches WHERE status = 'live'")
     suspend fun getLiveMatches(): List<MatchEntity>
 
+    @Query("SELECT COUNT(*) FROM matches WHERE status = 'live'")
+    suspend fun countLiveMatches(): Int
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM matches
+        WHERE status = 'scheduled'
+        AND match_time BETWEEN :startDate AND :endDate
+        """
+    )
+    suspend fun countScheduledMatchesBetween(startDate: String, endDate: String): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMatches(matches: List<MatchEntity>)
 
